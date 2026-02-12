@@ -1,14 +1,13 @@
 <?php
 
-namespace App\Filament\Resources\Timesheets\Schemas;
+namespace App\Filament\Resources\Holidays\Schemas;
 
-use Filament\Forms\Components\DateTimePicker;
+use Filament\Forms\Components\DatePicker;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
 use Filament\Schemas\Schema;
-use Filament\Tables\Columns\SelectColumn;
 
-class TimesheetForm
+class HolidayForm
 {
     public static function configure(Schema $schema): Schema
     {
@@ -22,13 +21,12 @@ class TimesheetForm
                     ->required(),
                 Select::make('type')
                     ->options([
-                        'work' => 'Working',
-                        'pause' => 'In Pause',
+                        'decline' => 'Decline',
+                        'approved' => 'Approved',
+                        'pending' => 'Pending',
                     ])
                     ->required(),
-                DateTimePicker::make('day_in')
-                    ->required(),
-                DateTimePicker::make('day_out')
+                DatePicker::make('day')
                     ->required(),
             ]);
     }

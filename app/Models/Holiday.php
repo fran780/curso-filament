@@ -8,6 +8,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 class Holiday extends Model
 {
     use HasFactory;
+    protected $guarded = []; // en un entorno de produccion se debe hacer un arreglo con los campos que se deben rellenar
 
     public function user()
     {
