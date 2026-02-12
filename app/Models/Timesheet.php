@@ -8,7 +8,9 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 class Timesheet extends Model
 {
     use HasFactory;
-
+    protected $guarded = [];
+    
+    //Relaciones
     public function user()
     {
         return $this->belongsTo(User::class);

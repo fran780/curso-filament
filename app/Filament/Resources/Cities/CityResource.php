@@ -25,7 +25,7 @@ class CityResource extends Resource
 
     protected static string|BackedEnum|null $navigationIcon = 'heroicon-o-building-office-2';
 
-    protected static ?int $navigationSort = 5; // esto de aca sirve para poder poner en la posición deseada según el número
+    protected static ?int $navigationSort = 8; // esto de aca sirve para poder poner en la posición deseada según el número
 
     protected static ?string $recordTitleAttribute = 'City';
 
