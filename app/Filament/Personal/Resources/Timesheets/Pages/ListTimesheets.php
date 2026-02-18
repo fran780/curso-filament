@@ -114,7 +114,7 @@ class ListTimesheets extends ListRecords
                     $timesheet->day_in = Carbon::now();
                     $timesheet->type = 'work';
                     $timesheet->save();
-                    Notification::make() //Notifiación al realizar la acción
+                    Notification::make() //Notificación al realizar la acción
                         ->title('Comienzas de nuevo a trabajar')
                         ->color('info')
                         ->success()

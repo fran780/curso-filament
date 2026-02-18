@@ -9,6 +9,9 @@ use Filament\Actions\EditAction;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Table;
+use pxlrbt\FilamentExcel\Actions\Tables\ExportBulkAction;
+use pxlrbt\FilamentExcel\Columns\Column;
+use pxlrbt\FilamentExcel\Exports\ExcelExport;
 
 class TimesheetsTable
 {
@@ -56,7 +59,21 @@ class TimesheetsTable
             ->toolbarActions([
                 BulkActionGroup::make([
                     DeleteBulkAction::make(),
-                ]),
+                    //Con esto puedo exportar forms, tablas aun no funcionan
+                    ExportBulkAction::make()->exports([
+                        ExcelExport::make('form')->fromForm()
+                            ->withFilename('Timesheet_' . date('Y-m-d') . ' _export')
+                            ->withColumns([
+                                Column::make('User'),
+                                Column::make('created_at'),
+                                Column::make('deleted_at'),
+                            ]),
+                        ExcelExport::make('form2')->fromForm()
+                            //permite seleccionar el tipo de archivo y el nombre de como se quiere exportar
+                            ->askForFilename()
+                            ->askForWriterType(),
+                    ])
+                ])
             ]);
     }
 }
