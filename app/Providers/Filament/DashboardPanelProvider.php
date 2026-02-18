@@ -18,6 +18,10 @@ use Illuminate\Foundation\Http\Middleware\VerifyCsrfToken;
 use Illuminate\Routing\Middleware\SubstituteBindings;
 use Illuminate\Session\Middleware\StartSession;
 use Illuminate\View\Middleware\ShareErrorsFromSession;
+use BezhanSalleh\FilamentShield\FilamentShieldPlugin;
+use Filament\Navigation\MenuItem;
+use Filament\Support\Icons\Heroicon;
+use Illuminate\Support\Facades\Auth;
 
 class DashboardPanelProvider extends PanelProvider
 {
@@ -54,6 +58,17 @@ class DashboardPanelProvider extends PanelProvider
             ])
             ->authMiddleware([
                 Authenticate::class,
+            ])
+            ->plugins([
+                FilamentShieldPlugin::make(),
+
+            ])
+            //Otra forma de switch panel
+            ->userMenuItems([
+                MenuItem::make()
+                    ->label('Personal')
+                    ->url('/personal')
+                    ->icon(Heroicon::Cog6Tooth)
             ]);
     }
 }

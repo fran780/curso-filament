@@ -22,10 +22,30 @@ class HolidayResource extends Resource
 
     protected static string|BackedEnum|null $navigationIcon = Heroicon::CalendarDays;
 
+    protected static ?string $navigationLabel = 'Vacaciones';
+
+    // para que se vea el numero de cuantas solicitudes o lo que sea que se tenga de este archivo, en este caso son el numero de vacaciones
+    public static function getNavigationBadge(): ?string
+    {
+        return parent::getEloquentQuery()->where('user_id', Auth::user()->id)->where('type', 'pending')->count();
+    }
+
+    //Sirve para hacer que mediante un rango en este caso de los tipos que estan pendientes pues se ponga del color indicado
+    public static function getNavigationBadgeColor(): ?string
+    {
+        return parent::getEloquentQuery()->where('user_id', Auth::user()->id)->where('type', 'pending')->count() > 0 ? 'warning' : 'primary';
+    }
+
     // sirve para filtrar los registros de un recurso por el usuario autenticado actualmente. 
     public static function getEloquentQuery(): Builder
     {
         return parent::getEloquentQuery()->where('user_id', Auth::user()->id);
+    }
+
+    // sirve para poner un mensaje al ponerse sobre el elemento indicado en este caso el numero de casos pendientes
+    public static function getNavigationBadgeTooltip(): ?string
+    {
+        return 'Numero de vacaciones pendientes';
     }
 
     // sirve para redirigir a la direccion indicada en el getUrl
