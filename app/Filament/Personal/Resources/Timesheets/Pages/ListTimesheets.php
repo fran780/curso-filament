@@ -16,6 +16,7 @@ use Illuminate\Support\Facades\Auth;
 use Maatwebsite\Excel\Excel;
 use App\Imports\UsersImport;
 use App\Http\Controllers\Controller;
+ use Barryvdh\DomPDF\Facade\Pdf;
 
 class ListTimesheets extends ListRecords
 {
@@ -130,25 +131,17 @@ class ListTimesheets extends ListRecords
             CreateAction::make(),
             ImportAction::make()
                 ->label("Import")
-                ->importer(TimesheetImporter::class)
+                ->importer(TimesheetImporter::class),
+                Action::make('createPDF')
+                ->label('Crear PDF')
+                ->color('warning')
+                ->requiresConfirmation()
+                ->url( //ruta para exportar el PDF
+                    fn (): string => route('pdf.example', ['user' => Auth::user()]),
+                    shouldOpenInNewTab: true, // abrir en en una nueva ventana
+                ),
         ];
     }
 }
 
 //Me queda pendiente arreglar lo de las zona horaria, además de los botones que no desaparecen cuando se toca uno.
-/*ImportColumn::make('calendar_id')
-                ->requiredMapping()
-                ->rules(['required']),
-            ImportColumn::make('user.name')
-                ->label('User')
-                ->requiredMapping()
-                ->rules(['required', 'integer']),
-            ImportColumn::make('type')
-                ->requiredMapping()
-                ->rules(['required', 'in:work,pause']),
-            ImportColumn::make('day_in')
-                ->requiredMapping()
-                ->rules(['required', 'date_format:Y-m-d H:i:s']),
-            ImportColumn::make('day_out')
-                ->rules(['nullable', 'date_format:Y-m-d H:i:s']),
-        ];*/

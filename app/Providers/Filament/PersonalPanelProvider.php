@@ -73,7 +73,7 @@ class PersonalPanelProvider extends PanelProvider
             ])
             //Otra forma de switch panel
             ->userMenuItems([
-                MenuItem::make()
+                MenuItem::make( )
                     ->label('Admin')
                     ->url('/admin')
                     ->icon(Heroicon::Cog6Tooth)
