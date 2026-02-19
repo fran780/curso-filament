@@ -22,9 +22,9 @@ class TimesheetsTable
                 TextColumn::make('calendar.name') //esto sirve para los campos donde tengo relacion puedo mostrar en vez del id, el nombre ya que ambas cosas estan relacionadas
                     ->sortable()
                     ->searchable(),
-                TextColumn::make('user.name')
+                /*TextColumn::make('user.name')
                     ->sortable()
-                    ->searchable(),
+                    ->searchable(),*/
                 TextColumn::make('type')
                     ->searchable(),
                 TextColumn::make('day_in')
@@ -62,12 +62,12 @@ class TimesheetsTable
                     //Con esto puedo exportar forms, tablas aun no funcionan
                     ExportBulkAction::make()->exports([
                         ExcelExport::make('form')->fromForm()
-                            ->withFilename('Timesheet_' . date('Y-m-d') . ' _export')
-                            ->withColumns([
+                            ->withFilename('Timesheet_' . date('Y-m-d') . ' _export'),
+                        /*->withColumns([
                                 Column::make('User'),
                                 Column::make('created_at'),
                                 Column::make('deleted_at'),
-                            ]),
+                            ]),*/
                         ExcelExport::make('form2')->fromForm()
                             //permite seleccionar el tipo de archivo y el nombre de como se quiere exportar
                             ->askForFilename()

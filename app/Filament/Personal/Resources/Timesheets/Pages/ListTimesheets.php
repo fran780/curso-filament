@@ -2,14 +2,20 @@
 
 namespace App\Filament\Personal\Resources\Timesheets\Pages;
 
+use App\Filament\Imports\TimesheetImporter;
 use App\Filament\Personal\Resources\Timesheets\TimesheetResource;
+use App\Imports\MyTimesheetImport;
 use App\Models\Timesheet;
 use Filament\Actions\Action;
 use Filament\Actions\CreateAction;
+use Filament\Actions\ImportAction;
 use Filament\Notifications\Notification;
 use Filament\Resources\Pages\ListRecords;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Auth;
+use Maatwebsite\Excel\Excel;
+use App\Imports\UsersImport;
+use App\Http\Controllers\Controller;
 
 class ListTimesheets extends ListRecords
 {
@@ -58,7 +64,7 @@ class ListTimesheets extends ListRecords
                         ->color('success')
                         ->success()
                         ->send();
-                        $this->dispatch('$refresh');
+                    $this->dispatch('$refresh');
                 }),
             Action::make('stopWork')
                 ->label('Parar trabajo')
@@ -75,7 +81,7 @@ class ListTimesheets extends ListRecords
                         ->color('success')
                         ->success()
                         ->send();
-                        $this->dispatch('$refresh');
+                    $this->dispatch('$refresh');
                 }),
             Action::make('inPause')
                 ->label('Comenzar Pausa')
@@ -97,7 +103,7 @@ class ListTimesheets extends ListRecords
                         ->color('info')
                         ->success()
                         ->send();
-                        $this->dispatch('$refresh');
+                    $this->dispatch('$refresh');
                 }),
             Action::make('stopPause')
                 ->label('Parar Pausa')
@@ -119,11 +125,30 @@ class ListTimesheets extends ListRecords
                         ->color('info')
                         ->success()
                         ->send();
-                        $this->dispatch('$refresh');
+                    $this->dispatch('$refresh');
                 }),
             CreateAction::make(),
+            ImportAction::make()
+                ->label("Import")
+                ->importer(TimesheetImporter::class)
         ];
     }
 }
 
 //Me queda pendiente arreglar lo de las zona horaria, además de los botones que no desaparecen cuando se toca uno.
+/*ImportColumn::make('calendar_id')
+                ->requiredMapping()
+                ->rules(['required']),
+            ImportColumn::make('user.name')
+                ->label('User')
+                ->requiredMapping()
+                ->rules(['required', 'integer']),
+            ImportColumn::make('type')
+                ->requiredMapping()
+                ->rules(['required', 'in:work,pause']),
+            ImportColumn::make('day_in')
+                ->requiredMapping()
+                ->rules(['required', 'date_format:Y-m-d H:i:s']),
+            ImportColumn::make('day_out')
+                ->rules(['nullable', 'date_format:Y-m-d H:i:s']),
+        ];*/
