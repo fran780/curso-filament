@@ -65,6 +65,7 @@ class PersonalPanelProvider extends PanelProvider
             ->authMiddleware([
                 Authenticate::class,
             ])
+            ->databaseNotifications()
             ->navigationItems([
                 NavigationItem::make('RMCF')
                     ->url('https://www.realmadrid.com/landings/copas-de-europa-ganadas/', shouldOpenInNewTab: true)

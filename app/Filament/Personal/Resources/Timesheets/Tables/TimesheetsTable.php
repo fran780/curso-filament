@@ -22,9 +22,9 @@ class TimesheetsTable
                 TextColumn::make('calendar.name') //esto sirve para los campos donde tengo relacion puedo mostrar en vez del id, el nombre ya que ambas cosas estan relacionadas
                     ->sortable()
                     ->searchable(),
-                /*TextColumn::make('user.name')
+                TextColumn::make('user.id')
                     ->sortable()
-                    ->searchable(),*/
+                    ->searchable(),
                 TextColumn::make('type')
                     ->searchable(),
                 TextColumn::make('day_in')
