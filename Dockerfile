@@ -1,11 +1,10 @@
 FROM node:20-alpine AS assets
 WORKDIR /app
 COPY package*.json ./
-COPY pnpm-lock.yaml ./
-RUN corepack enable || true
-RUN if [ -f pnpm-lock.yaml ]; then pnpm i --frozen-lockfile; else npm ci; fi
+RUN npm ci
+
 COPY . .
-RUN if [ -f pnpm-lock.yaml ]; then pnpm build; else npm run build; fi
+RUN npm run build
 
 FROM composer:2 AS vendor
 WORKDIR /app
