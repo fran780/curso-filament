@@ -42,20 +42,3 @@ RUN chown -R www-data:www-data storage bootstrap/cache \
 
 EXPOSE 80
 CMD ["/usr/bin/supervisord","-c","/etc/supervisord.conf"]
-[1:59 p.m., 25/2/2026] Francisco Fernández: server {
-  listen 80;
-  server_name _;
-  root /var/www/html/public;
-  index index.php;
-
-  location / {
-    try_files $uri $uri/ /index.php?$query_string;
-  }
-
-  location ~ \.php$ {
-    try_files $uri =404;
-    include fastcgi_params;
-    fastcgi_pass 127.0.0.1:9000;
-    fastcgi_param SCRIPT_FILENAME $document_root$fastcgi_script_name;
-  }
-}
