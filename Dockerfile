@@ -1,5 +1,5 @@
 # 1) Build de assets (Vite) - soporta con o sin package-lock.json
-FROM php:8.4-fpm-alpine AS builder
+FROM node:20-alpine AS assets
 WORKDIR /app
 
 COPY package.json ./
@@ -34,7 +34,7 @@ RUN composer install --no-dev --prefer-dist --no-interaction --no-progress --opt
 
 
 # 3) Runtime (FrankenPHP) + mismas extensiones
-FROM dunglas/frankenphp:1.4-php8.4-alpine
+FROM dunglas/frankenphp:8.4-alpine
 WORKDIR /app
 
 RUN apt-get update && apt-get install -y \
@@ -55,5 +55,5 @@ RUN chown -R www-data:www-data /app/storage /app/bootstrap/cache
 
 EXPOSE 8000
 
-# Default command starts FrankenPHP in high-performance Worker Mode
-CMD ["php", "artisan", "octane:start", "--server=frankenphp", "--host=0.0.0.0", "--port=8000", "--admin-port=2019"]
+# 1GB RAM: pocos workers
+CMD ["php","artisan","octane:frankenphp","--host=0.0.0.0","--port=8000","--workers=2","--max-requests=300"]
