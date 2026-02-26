@@ -9,21 +9,16 @@ services:
     depends_on:
       - db
       - redis
-    command:
-      - sh
-      - -lc
-      - php artisan octane:start --server=frankenphp --host=0.0.0.0 --port=8080
+    expose:
+      - "8080"
     volumes:
       - storage_data:/app/storage
     networks:
       - default
       - dokploy-network
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8080/up"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-      start_period: 30s
+    labels:
+      - traefik.enable=true
+      - traefik.docker.network=dokploy-network
 
   queue:
     build:
@@ -34,12 +29,8 @@ services:
       - .env
     command: ["php","artisan","queue:work","--tries=3","--timeout=120","--sleep=1"]
     depends_on:
-      web:
-        condition: service_healthy
-      db:
-        condition: service_started
-      redis:
-        condition: service_started
+      - db
+      - redis
     volumes:
       - storage_data:/app/storage
     networks:
