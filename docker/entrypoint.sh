@@ -1,40 +1,35 @@
-#!/usr/bin/env sh
+#!/bin/sh
 set -e
 
-echo "==> Starting entrypoint..."
-
-# Ensure APP_KEY exists
-if [ -z "$APP_KEY" ] || [ "$APP_KEY" = "base64:" ]; then
-  echo "==> APP_KEY missing. Generating..."
-  php artisan key:generate --force || true
-fi
-
-# Wait for DB (MySQL)
-DB_HOST="${DB_HOST:-db}"
-DB_PORT="${DB_PORT:-3306}"
-
-echo "==> Waiting for MySQL at ${DB_HOST}:${DB_PORT}..."
-for i in $(seq 1 60); do
-  nc -z "$DB_HOST" "$DB_PORT" && break
-  echo "   ... still waiting ($i/60)"
+# 1. Wait for database ($DB_HOST is passed from .env/Dokploy)
+echo "Waiting for database ($DB_HOST)..."
+while ! nc -z $DB_HOST $DB_PORT; do
   sleep 1
 done
+echo "Database is ready!"
 
-# Storage link (safe)
-echo "==> storage:link"
-php artisan storage:link || true
+# 2. Check if APP_KEY is set
+if [ -z "$APP_KEY" ]; then
+    echo "No APP_KEY found, generating one..."
+    php artisan key:generate --force
+fi
 
-# Migrations
-echo "==> migrate --force"
-php artisan migrate --force || true
+# 3. Production Optimizations
+echo "Caching configuration and routes..."
+php artisan optimize:clear
+php artisan optimize
 
-# Caches / optimize
-echo "==> optimize"
-php artisan optimize || true
+echo "Optimizing Filament 4..."
+# This caches Blade icons and components for massive speed gains in Octane
+php artisan filament:optimize
 
-# Filament optimize (optional)
-echo "==> filament:optimize (optional)"
-php artisan filament:optimize || true
+echo "Linking storage..."
+php artisan storage:link --force
 
-echo "==> Handing off to CMD: $*"
+# 4. Run migrations
+echo "Running migrations..."
+php artisan migrate --force
+
+# 5. Start the process (CMD from docker-compose)
+echo "Starting application..."
 exec "$@"

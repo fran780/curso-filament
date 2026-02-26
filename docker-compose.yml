@@ -1,99 +1,57 @@
 services:
+  # --- THE WEB SERVER (FrankenPHP) ---
   web:
-    build:
-      context: .
-      dockerfile: Dockerfile
-    env_file:
-      - .env
-    depends_on:
-      - db
-      - redis
-    expose:
-      - "80"
+    build: .
+    restart: always
+    env_file: .env
+    healthcheck:
+      # Laravel 11/12 internal health route
+      test: ["CMD", "curl", "-f", "http://localhost/up"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 30s
+    command:
+      - php
+      - artisan
+      - octane:start
+      - --server=frankenphp
+      - --host=0.0.0.0
+      - --port=80
+      - --admin-port=2019
     volumes:
       - laravel_uploads:/app/storage/app/public
       - laravel_logs:/app/storage/logs
-    labels:
-      - traefik.enable=true
-      - traefik.docker.network=dokploy-network
-
-      # HTTP
-      - traefik.http.routers.filament.rule=Host(${APP_DOMAIN})
-      - traefik.http.routers.filament.entrypoints=web
-      - traefik.http.services.filament.loadbalancer.server.port=80
-
-      # HTTPS
-      - traefik.http.routers.filament-secure.rule=Host(${APP_DOMAIN})
-      - traefik.http.routers.filament-secure.entrypoints=websecure
-      - traefik.http.routers.filament-secure.tls=true
-      - traefik.http.routers.filament-secure.service=filament
     networks:
       - dokploy-network
-    healthcheck:
-      test: ["CMD", "curl", "-fsS", "http://localhost/up"]
-      interval: 10s
-      timeout: 5s
-      retries: 12
-      start_period: 90s
 
+  # --- THE QUEUE (Horizon) ---
   horizon:
-    build:
-      context: .
-      dockerfile: Dockerfile
-    env_file:
-      - .env
-    depends_on:
-      web:
-        condition: service_healthy
+    build: .
+    restart: always
+    env_file: .env
     command: ["php", "artisan", "horizon"]
-    volumes:
-      - laravel_uploads:/app/storage/app/public
-      - laravel_logs:/app/storage/logs
-    networks:
-      - dokploy-network
-
-  scheduler:
-    build:
-      context: .
-      dockerfile: Dockerfile
-    env_file:
-      - .env
     depends_on:
       web:
         condition: service_healthy
-    command: ["php", "artisan", "schedule:work"]
     volumes:
       - laravel_uploads:/app/storage/app/public
-      - laravel_logs:/app/storage/logs
     networks:
       - dokploy-network
 
-  db:
-    image: mysql:8.0
-    restart: unless-stopped
-    environment:
-      MYSQL_DATABASE: ${DB_DATABASE}
-      MYSQL_USER: ${DB_USERNAME}
-      MYSQL_PASSWORD: ${DB_PASSWORD}
-      MYSQL_ROOT_PASSWORD: ${DB_ROOT_PASSWORD}
-    volumes:
-      - mysql_data:/var/lib/mysql
-    networks:
-      - dokploy-network
-    healthcheck:
-      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-proot"]
-      interval: 10s
-      timeout: 5s
-      retries: 10
-
-  redis:
-    image: redis:7-alpine
-    restart: unless-stopped
+  # --- THE SCHEDULER ---
+  scheduler:
+    build: .
+    restart: always
+    env_file: .env
+    command: ["php", "artisan", "schedule:work"]
+    depends_on:
+      web:
+        condition: service_healthy
     networks:
       - dokploy-network
 
 volumes:
-  mysql_data:
   laravel_uploads:
   laravel_logs:
 

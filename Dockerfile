@@ -22,12 +22,7 @@ RUN docker-php-ext-install \
 WORKDIR /app
 COPY . .
 
-RUN mkdir -p \
-storage/framework/cache \
-storage/framework/sessions \
-storage/framework/views \
-bootstrap/cache \
-&& chmod -R 775 storage bootstrap
+RUN npm install && npm run build
 
 # Composer
 COPY --from=composer:2 /usr/bin/composer /usr/bin/composer
@@ -35,7 +30,6 @@ RUN composer install --no-dev --optimize-autoloader --no-interaction
 
 # Build Vite
 RUN npm install && npm run build
-
 
 # --- Stage 2: Runtime (FrankenPHP) ---
 FROM dunglas/frankenphp:1.4-php8.4-alpine
