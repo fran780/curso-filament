@@ -1,59 +1,59 @@
-# 1) Build de assets (Vite) - soporta con o sin package-lock.json
-FROM node:20-alpine AS assets
+# --- Stage 1: Builder (Composer + Vite) ---
+FROM php:8.4-cli-alpine AS builder
 WORKDIR /app
 
-COPY package.json ./
-COPY package-lock.json* ./
-
-RUN if [ -f package-lock.json ]; then npm ci; else npm install; fi
-
-COPY . .
-RUN npm run build
-
-
-# 2) Composer deps (con extensiones requeridas por Filament: intl, gd, etc.)
-FROM composer:2 AS vendor
-WORKDIR /app
-
-# Instalar libs necesarias para intl/gd/zip
+# System deps for building PHP extensions + node
 RUN apk add --no-cache \
-    icu-dev \
-    libpng-dev \
-    libjpeg-turbo-dev \
-    freetype-dev \
-    libzip-dev \
-    unzip \
-    oniguruma-dev \
-    linux-headers \
-    $PHPIZE_DEPS \
-  && docker-php-ext-configure gd --with-freetype --with-jpeg \
-  && docker-php-ext-install intl gd zip pdo_mysql
+    git curl bash \
+    nodejs npm \
+    icu-dev libzip-dev zlib-dev \
+    libpng-dev freetype-dev libjpeg-turbo-dev \
+    oniguruma-dev
 
-COPY composer.json composer.lock ./
-RUN composer install --no-dev --prefer-dist --no-interaction --no-progress --optimize-autoloader
+# PHP extensions often needed during build (safe set)
+RUN docker-php-ext-configure gd --with-freetype --with-jpeg \
+    && docker-php-ext-install intl zip bcmath gd
+
+# Copy project
+COPY . .
+
+# Composer
+COPY --from=composer:2 /usr/bin/composer /usr/bin/composer
+RUN composer install --no-dev --no-interaction --no-progress --optimize-autoloader
+
+# Vite build
+RUN if [ -f package-lock.json ]; then npm ci; else npm install; fi \
+    && npm run build
 
 
-# 3) Runtime (FrankenPHP) + mismas extensiones
-FROM dunglas/frankenphp:8.4-alpine
+# --- Stage 2: Runtime (FrankenPHP + Octane) ---
+FROM dunglas/frankenphp:1.4-php8.4-alpine
 WORKDIR /app
 
-RUN apt-get update && apt-get install -y \
-    libicu-dev \
-    libpng-dev \
-    libjpeg62-turbo-dev \
-    libfreetype6-dev \
-    libzip-dev \
-  && docker-php-ext-configure gd --with-freetype --with-jpeg \
-  && docker-php-ext-install intl gd zip pdo_mysql \
-  && rm -rf /var/lib/apt/lists/*
+# install-php-extensions (robusto)
+ADD https://github.com/mlocati/docker-php-extension-installer/releases/latest/download/install-php-extensions /usr/local/bin/install-php-extensions
+RUN chmod +x /usr/local/bin/install-php-extensions
 
-COPY . .
-COPY --from=vendor /app/vendor /app/vendor
-COPY --from=assets /app/public/build /app/public/build
+# Runtime PHP extensions (MySQL + Filament common)
+RUN install-php-extensions \
+    pdo_mysql \
+    intl \
+    bcmath \
+    gd \
+    zip \
+    exif \
+    opcache
 
-RUN chown -R www-data:www-data /app/storage /app/bootstrap/cache
+# (Opcional) Redis solo si lo usas
+# RUN install-php-extensions redis
 
-EXPOSE 8000
+# Copy built app (includes vendor + public/build)
+COPY --from=builder /app /app
 
-# 1GB RAM: pocos workers
-CMD ["php","artisan","octane:frankenphp","--host=0.0.0.0","--port=8000","--workers=2","--max-requests=300"]
+# Permissions for storage/cache (uploads/imports)
+RUN mkdir -p storage bootstrap/cache \
+    && chown -R www-data:www-data /app/storage /app/bootstrap/cache
+
+EXPOSE 80
+
+CMD ["php", "artisan", "octane:start", "--server=frankenphp", "--host=0.0.0.0", "--port=80"]
