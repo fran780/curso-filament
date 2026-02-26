@@ -1,49 +1,74 @@
-# --- Stage 1: Builder (Composer + Vite) ---
-FROM php:8.4-cli-alpine AS builder
-WORKDIR /app
+# --- Stage 1: Builder ---
+FROM php:8.4-fpm-alpine AS builder
 
+# Dependencias para compilar extensiones y assets
 RUN apk add --no-cache \
-    git curl bash \
     nodejs npm \
-    icu-dev libzip-dev zlib-dev \
-    libpng-dev freetype-dev libjpeg-turbo-dev \
-    oniguruma-dev
+    icu-dev \
+    libzip-dev \
+    libpng-dev \
+    mariadb-dev \
+    zlib-dev
 
-RUN docker-php-ext-configure gd --with-freetype --with-jpeg \
-    && docker-php-ext-install intl zip bcmath gd
+# Extensiones necesarias para Laravel + Filament
+RUN docker-php-ext-install \
+    intl \
+    zip \
+    pcntl \
+    pdo_mysql \
+    bcmath \
+    gd
 
+WORKDIR /app
 COPY . .
 
+# Composer
 COPY --from=composer:2 /usr/bin/composer /usr/bin/composer
-RUN composer install --no-dev --no-interaction --no-progress --optimize-autoloader
+RUN composer install --no-dev --optimize-autoloader --no-interaction
 
-RUN if [ -f package-lock.json ]; then npm ci; else npm install; fi \
-    && npm run build
+# Build Vite
+RUN npm install && npm run build
 
 
-# --- Stage 2: Runtime (FrankenPHP + Octane) ---
-FROM dunglas/frankenphp:1.5-php8.4-alpine
-WORKDIR /app
+# --- Stage 2: Runtime (FrankenPHP) ---
+FROM dunglas/frankenphp:1.4-php8.4-alpine
 
-ADD https://github.com/mlocati/docker-php-extension-installer/releases/latest/download/install-php-extensions /usr/local/bin/install-php-extensions
-RUN chmod +x /usr/local/bin/install-php-extensions
+# Herramientas necesarias para healthcheck y entrypoint
+RUN apk add --no-cache curl netcat-openbsd
 
+# Instalar extensiones runtime
 RUN install-php-extensions \
     pdo_mysql \
-    redis \
     intl \
     bcmath \
     gd \
     zip \
-    exif \
     pcntl \
-    opcache
+    posix \
+    exif \
+    opcache \
+    redis \
+    soap
 
+WORKDIR /app
+
+# Copiar app ya construida
 COPY --from=builder /app /app
 
-RUN mkdir -p storage bootstrap/cache \
-    && chown -R www-data:www-data /app/storage /app/bootstrap/cache
+# PHP config personalizada
+COPY ./docker/php/local.ini /usr/local/etc/php/conf.d/app.ini
 
-EXPOSE 8080
+# Entrypoint
+COPY ./docker/entrypoint.sh /usr/local/bin/entrypoint.sh
+RUN chmod +x /usr/local/bin/entrypoint.sh
 
-CMD ["sh", "-lc", "export FRANKENPHP_BINARY=$(command -v frankenphp || echo /usr/local/bin/frankenphp); php artisan octane:start --server=frankenphp --host=0.0.0.0 --port=8080"]
+# Permisos Laravel
+RUN chown -R www-data:www-data /app/storage /app/bootstrap/cache
+
+# Puerto interno
+EXPOSE 80
+
+ENTRYPOINT ["/usr/local/bin/entrypoint.sh"]
+
+# Arranque Octane + FrankenPHP
+CMD ["php", "artisan", "octane:start", "--server=frankenphp", "--host=0.0.0.0", "--port=80", "--admin-port=2019"]
