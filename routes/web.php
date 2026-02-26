@@ -11,3 +11,6 @@ Route::get('/', function () {
 
 //aqui es donde se maada el pdf segun el usuario, luego sigue la logica para descargar el pdf
 Route::get('/pdf/generate/timesheet/{user}',[PdfController::class, 'TimesheetRecords'])->name('pdf.example');
+
+//Ruta para up del docker
+Route::get('/up', fn () => response('ok', 200));
