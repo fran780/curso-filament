@@ -27,7 +27,7 @@ RUN if [ -f package-lock.json ]; then npm ci; else npm install; fi \
 
 
 # --- Stage 2: Runtime (FrankenPHP + Octane) ---
-FROM dunglas/frankenphp:1.4-php8.4-alpine
+FROM dunglas/frankenphp:1.5-php8.4-alpine
 WORKDIR /app
 
 # install-php-extensions (robusto)
@@ -55,4 +55,4 @@ RUN mkdir -p storage bootstrap/cache \
 
 EXPOSE 8080
 
-CMD ["sh", "-lc", "php artisan octane:start --server=frankenphp --host=0.0.0.0 --port=8080"]
+CMD ["sh", "-lc", "export FRANKENPHP_BINARY=$(command -v frankenphp || echo /usr/local/bin/frankenphp); php artisan octane:start --server=frankenphp --host=0.0.0.0 --port=8080"]
