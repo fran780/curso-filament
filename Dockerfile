@@ -42,7 +42,8 @@ RUN install-php-extensions \
     gd \
     zip \
     exif \
-    opcache
+    opcache \
+    pcntl
 
 # Copy built app (includes vendor + public/build)
 COPY --from=builder /app /app
