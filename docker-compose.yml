@@ -8,21 +8,6 @@ services:
     depends_on:
       - db
       - redis
-    volumes:
-      - storage_data:/app/storage
-    networks:
-      - dokploy-network
-
-  queue:
-    build:
-      context: .
-      dockerfile: Dockerfile
-    env_file:
-      - .env
-    command: ["php","artisan","queue:work","--tries=3","--timeout=120","--sleep=1"]
-    depends_on:
-      - db
-      - redis
     expose:
       - "8080"
     volumes:
@@ -36,6 +21,21 @@ services:
       - traefik.http.routers.curso-filament-secure.rule=Host(`${APP_DOMAIN:-localhost}`)
       - traefik.http.routers.curso-filament-secure.entrypoints=websecure
       - traefik.http.routers.curso-filament-secure.tls=true
+    networks:
+      - dokploy-network
+
+  queue:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    env_file:
+      - .env
+    command: ["php","artisan","queue:work","--tries=3","--timeout=120","--sleep=1"]
+    depends_on:
+      - db
+      - redis
+    volumes:
+      - storage_data:/app/storage
     networks:
       - dokploy-network
 
