@@ -37,13 +37,14 @@ RUN chmod +x /usr/local/bin/install-php-extensions
 # Runtime PHP extensions (MySQL + Filament common)
 RUN install-php-extensions \
     pdo_mysql \
+    redis \
     intl \
     bcmath \
     gd \
     zip \
     exif \
-    opcache \
-    pcntl
+    pcntl \
+    opcache
 
 # Copy built app (includes vendor + public/build)
 COPY --from=builder /app /app
