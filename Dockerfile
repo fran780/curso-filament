@@ -72,3 +72,4 @@ ENTRYPOINT ["/usr/local/bin/entrypoint.sh"]
 
 # Arranque Octane + FrankenPHP
 CMD ["php", "artisan", "octane:start", "--server=frankenphp", "--host=0.0.0.0", "--port=80", "--admin-port=2019"]
+
