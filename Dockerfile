@@ -22,6 +22,13 @@ RUN docker-php-ext-install \
 WORKDIR /app
 COPY . .
 
+RUN mkdir -p \
+storage/framework/cache \
+storage/framework/sessions \
+storage/framework/views \
+bootstrap/cache \
+&& chmod -R 775 storage bootstrap
+
 # Composer
 COPY --from=composer:2 /usr/bin/composer /usr/bin/composer
 RUN composer install --no-dev --optimize-autoloader --no-interaction
