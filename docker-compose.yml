@@ -3,49 +3,57 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
+    restart: always
     env_file:
       - .env
     depends_on:
       - db
       - redis
-    expose:
-      - "9000"
+    command:
+      - sh
+      - -lc
+      - php artisan octane:start --server=frankenphp --host=0.0.0.0 --port=8080
     volumes:
       - storage_data:/app/storage
-    labels:
-      - traefik.enable=true
-      - traefik.docker.network=dokploy-network
-      - traefik.http.services.curso-filament.loadbalancer.server.port=8080
-      - traefik.http.routers.curso-filament.rule=Host(`${APP_DOMAIN:-localhost}`)
-      - traefik.http.routers.curso-filament.entrypoints=web
-      - traefik.http.routers.curso-filament-secure.rule=Host(`${APP_DOMAIN:-localhost}`)
-      - traefik.http.routers.curso-filament-secure.entrypoints=websecure
-      - traefik.http.routers.curso-filament-secure.tls=true
     networks:
+      - default
       - dokploy-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/up"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
 
   queue:
     build:
       context: .
       dockerfile: Dockerfile
+    restart: always
     env_file:
       - .env
     command: ["php","artisan","queue:work","--tries=3","--timeout=120","--sleep=1"]
     depends_on:
-      - db
-      - redis
+      web:
+        condition: service_healthy
+      db:
+        condition: service_started
+      redis:
+        condition: service_started
     volumes:
       - storage_data:/app/storage
     networks:
-      - dokploy-network
+      - default
 
   redis:
     image: redis:7-alpine
+    restart: always
     networks:
-      - dokploy-network
+      - default
 
   db:
     image: mysql:8.0
+    restart: always
     environment:
       MYSQL_DATABASE: ${DB_DATABASE:-app}
       MYSQL_USER: ${DB_USERNAME:-app}
@@ -55,7 +63,7 @@ services:
     volumes:
       - db_data:/var/lib/mysql
     networks:
-      - dokploy-network
+      - default
 
 volumes:
   db_data:
