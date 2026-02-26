@@ -54,6 +54,6 @@ COPY --from=builder /app /app
 RUN mkdir -p storage bootstrap/cache \
     && chown -R www-data:www-data /app/storage /app/bootstrap/cache
 
-EXPOSE 80
+EXPOSE 8080
 
-CMD ["php", "artisan", "octane:start", "--server=frankenphp", "--host=0.0.0.0", "--port=80"]
+CMD ["php", "artisan", "octane:start", "--server=frankenphp", "--host=0.0.0.0", "--port=8080"]
