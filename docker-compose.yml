@@ -5,6 +5,9 @@ services:
       dockerfile: Dockerfile
     env_file:
       - .env
+    environment:
+      - OCTANE_SERVER=frankenphp
+      - FRANKENPHP_CONFIG=
     depends_on:
       - db
       - redis

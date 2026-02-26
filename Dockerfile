@@ -55,4 +55,4 @@ RUN mkdir -p storage bootstrap/cache \
 
 EXPOSE 8080
 
-CMD ["php", "artisan", "octane:start", "--server=frankenphp", "--host=0.0.0.0", "--port=8080"]
+CMD ["sh", "-lc", "php artisan octane:start --server=frankenphp --host=0.0.0.0 --port=8080"]
