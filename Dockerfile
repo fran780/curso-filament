@@ -27,7 +27,7 @@ RUN if [ -f package-lock.json ]; then npm ci; else npm install; fi \
 
 
 # --- Stage 2: Runtime (FrankenPHP + Octane) ---
-FROM dunglas/frankenphp:1.4-php8.4-alpine
+FROM dunglas/frankenphp:1.5-php8.4-alpine
 WORKDIR /app
 
 # install-php-extensions (robusto)
