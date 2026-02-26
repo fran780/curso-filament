@@ -1,61 +1,45 @@
 services:
-  # --- THE WEB SERVER (FrankenPHP) ---
   web:
-    build: .
-    restart: always
-    env_file: .env
-    healthcheck:
-      # Laravel 11/12 internal health route
-      test: ["CMD", "curl", "-f", "http://localhost/up"]
-      interval: 10s
-      timeout: 5s
-      retries: 3
-      start_period: 30s
-    command:
-      - php
-      - artisan
-      - octane:start
-      - --server=frankenphp
-      - --host=0.0.0.0
-      - --port=80
-      - --admin-port=2019
+    build:
+      context: .
+      dockerfile: Dockerfile
+    env_file:
+      - .env
+    depends_on:
+      - db
+    expose:
+      - "8080"
     volumes:
-      - laravel_uploads:/app/storage/app/public
-      - laravel_logs:/app/storage/logs
+      - storage_data:/var/www/html/storage
+    labels:
+      - traefik.enable=true
+      - traefik.docker.network=dokploy-network
+      - traefik.http.routers.curso-filament.rule=Host(${APP_DOMAIN:-143.110.237.241})
+      - traefik.http.routers.curso-filament.entrypoints=web
+      - traefik.http.services.curso-filament.loadbalancer.server.port=8080
     networks:
       - dokploy-network
 
-  # --- THE QUEUE (Horizon) ---
-  horizon:
-    build: .
-    restart: always
-    env_file: .env
-    command: ["php", "artisan", "horizon"]
-    depends_on:
-      web:
-        condition: service_healthy
+  db:
+    image: mysql:8.0
+    environment:
+      MYSQL_DATABASE: ${DB_DATABASE:-laravel}
+      MYSQL_USER: ${DB_USERNAME:-laravel}
+      MYSQL_PASSWORD: ${DB_PASSWORD:-secret}
+      MYSQL_ROOT_PASSWORD: ${DB_ROOT_PASSWORD:-root}
+    command: >
+      --default-authentication-plugin=mysql_native_password
+      --character-set-server=utf8mb4
+      --collation-server=utf8mb4_unicode_ci
     volumes:
-      - laravel_uploads:/app/storage/app/public
-    networks:
-      - dokploy-network
-
-  # --- THE SCHEDULER ---
-  scheduler:
-    build: .
-    restart: always
-    env_file: .env
-    command: ["php", "artisan", "schedule:work"]
-    depends_on:
-      web:
-        condition: service_healthy
+      - mysql_data:/var/lib/mysql
     networks:
       - dokploy-network
 
 volumes:
-  laravel_uploads:
-  laravel_logs:
+  mysql_data:
+  storage_data:
 
 networks:
   dokploy-network:
     external: true
-    name: dokploy-network

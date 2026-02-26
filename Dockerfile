@@ -1,49 +1,41 @@
-# --- Stage 1: Builder (Composer + Vite) ---
-FROM php:8.4-cli-alpine AS builder
+# ===== Stage 1: PHP dependencies (Composer) =====
+FROM composer:2 AS vendor
 WORKDIR /app
-
-RUN apk add --no-cache \
-    git curl bash \
-    nodejs npm \
-    icu-dev libzip-dev zlib-dev \
-    libpng-dev freetype-dev libjpeg-turbo-dev \
-    oniguruma-dev
-
-RUN docker-php-ext-configure gd --with-freetype --with-jpeg \
-    && docker-php-ext-install intl zip bcmath gd
-
+COPY composer.json composer.lock ./
+RUN composer install --no-dev --prefer-dist --no-interaction --no-progress --optimize-autoloader
 COPY . .
 
-COPY --from=composer:2 /usr/bin/composer /usr/bin/composer
-RUN composer install --no-dev --no-interaction --no-progress --optimize-autoloader
-
-RUN if [ -f package-lock.json ]; then npm ci; else npm install; fi \
-    && npm run build
-
-
-# --- Stage 2: Runtime (FrankenPHP + Octane) ---
-FROM dunglas/frankenphp:1.5-php8.4-alpine
+# ===== Stage 2: Frontend build (Vite) =====
+FROM node:20-alpine AS assets
 WORKDIR /app
+COPY package*.json ./
+RUN if [ -f package-lock.json ]; then npm ci; else npm install; fi
+COPY . .
+RUN npm run build
 
-ADD https://github.com/mlocati/docker-php-extension-installer/releases/latest/download/install-php-extensions /usr/local/bin/install-php-extensions
-RUN chmod +x /usr/local/bin/install-php-extensions
+# ===== Stage 3: Runtime (Nginx + PHP-FPM) =====
+FROM php:8.3-fpm-alpine
 
-RUN install-php-extensions \
-    pdo_mysql \
-    redis \
-    intl \
-    bcmath \
-    gd \
-    zip \
-    exif \
-    pcntl \
-    opcache
+RUN apk add --no-cache nginx supervisor icu-dev oniguruma-dev libzip-dev bash \
+  && docker-php-ext-install pdo pdo_mysql mbstring intl zip opcache
 
-COPY --from=builder /app /app
+WORKDIR /var/www/html
 
-RUN mkdir -p storage bootstrap/cache \
-    && chown -R www-data:www-data /app/storage /app/bootstrap/cache
+# App code
+COPY . .
+
+# Vendor + Vite build
+COPY --from=vendor /app/vendor ./vendor
+COPY --from=assets /app/public/build ./public/build
+
+# Nginx + Supervisor
+RUN mkdir -p /run/nginx
+COPY ./docker/nginx.conf /etc/nginx/http.d/default.conf
+COPY ./docker/supervisord.conf /etc/supervisord.conf
+
+# Permissions
+RUN chown -R www-data:www-data storage bootstrap/cache \
+  && chmod -R 775 storage bootstrap/cache
 
 EXPOSE 8080
-
-CMD ["sh", "-lc", "export FRANKENPHP_BINARY=$(command -v frankenphp || echo /usr/local/bin/frankenphp); php artisan octane:start --server=frankenphp --host=0.0.0.0 --port=8080"]
+CMD ["supervisord", "-c", "/etc/supervisord.conf"]
