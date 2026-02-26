@@ -9,7 +9,7 @@ services:
       - db
       - redis
     expose:
-      - "8080"
+      - "9000"
     volumes:
       - storage_data:/app/storage
     labels:
