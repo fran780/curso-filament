@@ -9,11 +9,10 @@ RUN apk add --no-cache \
     libpng-dev freetype-dev libjpeg-turbo-dev \
     oniguruma-dev
 
-# PHP extensions often needed during build (safe set)
+# PHP extensions needed during build
 RUN docker-php-ext-configure gd --with-freetype --with-jpeg \
     && docker-php-ext-install intl zip bcmath gd
 
-# Copy project
 WORKDIR /app
 COPY . .
 
@@ -28,13 +27,14 @@ RUN if [ -f package-lock.json ]; then npm ci; else npm install; fi \
 
 # --- Stage 2: Runtime (FrankenPHP + Octane) ---
 FROM dunglas/frankenphp:1.5-php8.4-alpine
+
 WORKDIR /app
 
-# install-php-extensions (robusto)
+# PHP extension installer
 ADD https://github.com/mlocati/docker-php-extension-installer/releases/latest/download/install-php-extensions /usr/local/bin/install-php-extensions
 RUN chmod +x /usr/local/bin/install-php-extensions
 
-# Runtime PHP extensions (MySQL + Filament common)
+# Runtime extensions
 RUN install-php-extensions \
     pdo_mysql \
     redis \
@@ -42,17 +42,18 @@ RUN install-php-extensions \
     bcmath \
     gd \
     zip \
-    exif \
     pcntl \
-    opcache
+    posix \
+    exif \
+    opcache \
+    soap
 
-# Copy built app (includes vendor + public/build)
+# Copy built app
 COPY --from=builder /app /app
 
-# Permissions for storage/cache (uploads/imports)
+# Permissions
 RUN mkdir -p storage bootstrap/cache \
-    && chown -R www-data:www-data /app/storage /app/bootstrap/cache
+    && chown -R www-data:www-data storage bootstrap/cache
 
+# Puerto que usará Traefik
 EXPOSE 9000
-
-CMD ["sh", "-lc", "export FRANKENPHP_BINARY=$(command -v frankenphp || echo /usr/local/bin/frankenphp); php artisan octane:start --server=frankenphp --host=0.0.0.0 --port=9000"]
