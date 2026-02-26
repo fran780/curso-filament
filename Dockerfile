@@ -2,15 +2,17 @@
 FROM php:8.4-cli-alpine AS builder
 WORKDIR /app
 
-# System deps for build tools + Node
+# System deps for building PHP extensions + node
 RUN apk add --no-cache \
     git curl bash \
     nodejs npm \
     icu-dev libzip-dev zlib-dev \
+    libpng-dev freetype-dev libjpeg-turbo-dev \
     oniguruma-dev
 
-# Minimal PHP extensions for composer/build-time requirements
-RUN docker-php-ext-install intl zip bcmath
+# PHP extensions often needed during build (safe set)
+RUN docker-php-ext-configure gd --with-freetype --with-jpeg \
+    && docker-php-ext-install intl zip bcmath gd
 
 # Copy project
 COPY . .
@@ -32,7 +34,7 @@ WORKDIR /app
 ADD https://github.com/mlocati/docker-php-extension-installer/releases/latest/download/install-php-extensions /usr/local/bin/install-php-extensions
 RUN chmod +x /usr/local/bin/install-php-extensions
 
-# Runtime PHP extensions (MySQL + Filament + Queue + Redis)
+# Runtime PHP extensions (MySQL + Filament common)
 RUN install-php-extensions \
     pdo_mysql \
     intl \
@@ -40,9 +42,7 @@ RUN install-php-extensions \
     gd \
     zip \
     exif \
-    opcache \
-    pcntl \
-    redis
+    opcache
 
 # Copy built app (includes vendor + public/build)
 COPY --from=builder /app /app
@@ -52,4 +52,5 @@ RUN mkdir -p storage bootstrap/cache \
     && chown -R www-data:www-data /app/storage /app/bootstrap/cache
 
 EXPOSE 8080
+
 CMD ["php", "artisan", "octane:start", "--server=frankenphp", "--host=0.0.0.0", "--port=8080"]
