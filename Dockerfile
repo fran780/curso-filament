@@ -1,40 +1,31 @@
-# --- Stage 1: Builder (Composer + Vite) ---
-FROM php:8.4-cli-alpine AS builder
-WORKDIR /app
+FROM php:8.4-fpm-alpine AS builder
 
-# System deps for building PHP extensions + node
 RUN apk add --no-cache \
-    git curl bash \
     nodejs npm \
-    icu-dev libzip-dev zlib-dev \
-    libpng-dev freetype-dev libjpeg-turbo-dev \
-    oniguruma-dev
+    icu-dev \
+    libzip-dev \
+    libpng-dev \
+    mysql-dev \
+    zlib-dev
 
-# PHP extensions often needed during build (safe set)
-RUN docker-php-ext-configure gd --with-freetype --with-jpeg \
-    && docker-php-ext-install intl zip bcmath gd
+RUN docker-php-ext-install intl zip pcntl pdo_mysql bcmath gd
 
-# Copy project
+WORKDIR /app
 COPY . .
 
-# Composer
-COPY --from=composer:2 /usr/bin/composer /usr/bin/composer
-RUN composer install --no-dev --no-interaction --no-progress --optimize-autoloader
+COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
 
-# Vite build
-RUN if [ -f package-lock.json ]; then npm ci; else npm install; fi \
+RUN composer install --no-dev --optimize-autoloader --no-interaction
+
+RUN  if [ -f package-lock.json ]; then npm ci; else npm install; fi \
     && npm run build
 
+# --- Stage 2: Production ---
+FROM dunglas/frankenphp:1.4-php8.4-alpine
 
-# --- Stage 2: Runtime (FrankenPHP + Octane) ---
-FROM dunglas/frankenphp:1.5-php8.4-alpine
-WORKDIR /app
-
-# install-php-extensions (robusto)
 ADD https://github.com/mlocati/docker-php-extension-installer/releases/latest/download/install-php-extensions /usr/local/bin/install-php-extensions
 RUN chmod +x /usr/local/bin/install-php-extensions
 
-# Runtime PHP extensions (MySQL + Filament common)
 RUN install-php-extensions \
     pdo_mysql \
     redis \
@@ -46,13 +37,18 @@ RUN install-php-extensions \
     pcntl \
     opcache
 
-# Copy built app (includes vendor + public/build)
+WORKDIR /app
+
 COPY --from=builder /app /app
 
-# Permissions for storage/cache (uploads/imports)
+ENV SERVER_NAME=:80
+ENV APP_RUNTIME=Laravel\Octane\FrankenPhp\Runtime
+
 RUN mkdir -p storage bootstrap/cache \
     && chown -R www-data:www-data /app/storage /app/bootstrap/cache
 
-EXPOSE 8080
+RUN chown -R www-data:www-data /app/storage /app/bootstrap/cache
 
-CMD ["sh", "-lc", "php artisan octane:start --server=frankenphp --host=0.0.0.0 --port=8080"]
+EXPOSE 8081
+
+CMD ["sh", "-lc", "export FRANKENPHP_BINARY=$(command -v frankenphp || echo /usr/local/bin/frankenphp); php artisan octane:start --server=frankenphp --host=0.0.0.0 --port=8081"]
