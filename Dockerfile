@@ -21,6 +21,12 @@ WORKDIR /app
 # Copiar el proyecto
 COPY . .
 
+RUN mkdir -p \
+    storage/framework/cache/data \
+    storage/framework/sessions \
+    storage/framework/views \
+    bootstrap/cache
+
 # Copiar el binario de Composer e Instalar dependencias PHP (producción)
 COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
 RUN composer install --no-dev --optimize-autoloader --no-interaction
