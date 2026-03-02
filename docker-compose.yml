@@ -1,57 +1,47 @@
 services:
 
- # SERVICIO WEB (Laravel + Octane + FrankenPHP)
   web:
     build:
       context: .
       dockerfile: Dockerfile
+
     restart: always
     env_file:
       - .env
     depends_on:
-      db:
-        condition: service_healthy
-      redis:
-        condition: service_healthy
+      - db
+      - redis
     volumes:
       - storage_data:/app/storage
     ports:
       - "8081:8081"
     networks:
       - default
+      - dokploy-network
+    labels:
+      - traefik.enable=true
+      - traefik.docker.network=dokploy-network
 
-# WORKER DE COLAS (queue:work)
   queue:
     build:
       context: .
       dockerfile: Dockerfile
     restart: always
-    env_file:
-      - .env
-    command: ["php", "artisan", "queue:work", "--tries=3", "--timeout=120", "--sleep=1", "--max-time=3600"]
+    command: ["php", "artisan", "queue:work", "--tries=3", "--timeout=120", "--sleep=1"]
     depends_on:
-      db:
-        condition: service_healthy
-      redis:
-        condition: service_healthy
+      - db
+      - redis
     volumes:
       - storage_data:/app/storage
     networks:
       - default
 
-# REDIS (cache y colas)
   redis:
     image: redis:7-alpine
     restart: always
-    healthcheck:
-      test: ["CMD", "redis-cli", "ping"]
-      interval: 5s
-      timeout: 3s
-      retries: 10
     networks:
       - default
 
-# MYSQL (base de datos
   db:
     image: mysql:8.0
     restart: always
@@ -65,16 +55,17 @@ services:
       - db_data:/var/lib/mysql
     healthcheck:
       test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
-      interval: 5s
       timeout: 5s
       retries: 10
+      
     networks:
-      - default
-
+        - default
 
 volumes:
-# Datos de MySQL
   db_data:
-
-   # Storage de Laravel (logs, uploads, etc.)
   storage_data:
+
+networks:
+  dokploy-network:
+    external: true
+    name: dokploy-network
